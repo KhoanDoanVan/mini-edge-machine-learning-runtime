@@ -83,7 +83,7 @@ class Kernel(ABC):
         raise NotImplementedError
 
 
-class KernelRegistery:
+class KernelRegistry:
     def __init__(self) -> None:
         self._kernels: dict[str, Kernel] = {}
 
