@@ -11,6 +11,7 @@
 #include "mini_ort/model.h"
 #include "mini_ort/session.h"
 #include "mini_ort/tensor.h"
+#include "mini_ort/model_format.h"
 
 
 struct MiniOrtStatus {
@@ -159,6 +160,25 @@ MiniOrtStatus* MiniOrtCreateSession(
                     std::move(native_layers)
                 )
             );
+        }
+    );
+}
+
+
+MiniOrtStatus* MiniOrtCreateSessionFromFile(
+    const char* model_path,
+    MiniOrtSession** output
+) {
+    if (output != nullptr) {
+        *output = nullptr;
+    }
+
+    return Guard(
+        [&] {
+            if (model_path == nullptr || output == nullptr) {
+                throw std::invalid_argument("model path and output must not be null");
+            }
+            *output = new MiniOrtSession(mini_ort::LoadModel(model_path));
         }
     );
 }

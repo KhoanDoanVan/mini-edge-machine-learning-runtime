@@ -1,5 +1,6 @@
 #pragma once
 
+#include "filesystem"
 #include "mini_ort/kernel.h"
 #include "mini_ort/model.h"
 #include "mini_ort/tensor.h"
@@ -11,6 +12,7 @@ namespace mini_ort {
         public:
 
         explicit InferenceSession(SequentialModel model);
+        explicit InferenceSession(const std::filesystem::path& model_path);
         InferenceSession(const InferenceSession&) = delete;
         InferenceSession& operator = (const InferenceSession&) = delete;
         InferenceSession(InferenceSession&&) noexcept = default;

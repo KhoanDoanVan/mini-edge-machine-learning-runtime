@@ -9,7 +9,7 @@
 
 
 #include "mini_ort/kernels/cpu.h"
-
+#include "mini_ort/model_format.h"
 
 
 namespace mini_ort {
@@ -43,6 +43,8 @@ namespace mini_ort {
         cpu::RegisterKernels(registry_);
     }
 
+    InferenceSession::InferenceSession(const std::filesystem::path& model_path) : InferenceSession(LoadModel(model_path)) {}
+
 
     Tensor InferenceSession::Run(const Tensor& input) const {
         const Tensor* current = &input;
@@ -50,6 +52,7 @@ namespace mini_ort {
 
 
         for (const auto& layer : model_.layers()) {
+            
             if (const auto* linear = std::get_if<LinearLayer>(&layer)) {
 
                 auto linear_output = Execute(
