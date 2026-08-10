@@ -7,9 +7,35 @@ from dataclasses import dataclass
 from numbers import Real
 from struct import pack, unpack
 from typing import Iterable
+from functools import reduce
+from enum import Enum
+from operator import mul
 
 
-from mini_onnx.ir import DType, Shape, TensorProto, element_count
+
+class DType(
+    str,
+    Enum
+):
+    FLOAT32 = "float32"
+
+
+
+Shape = tuple[int, ...]
+
+
+def _element_count(shape: Shape) -> int:
+    if any(isinstance(dimension, bool) or not isinstance(dimension, int) for dimension in shape):
+        raise TypeError("tensor dimensions must be integers")
+
+    if any(dimension < 0 for dimension in shape):
+        raise ValueError("tensor dimensions must be non-negative")
+
+    return reduce(
+        mul,
+        shape,
+        1
+    )
 
 
 
@@ -25,7 +51,7 @@ class Tensor:
         if self.dtype is not DType.FLOAT32:
             raise TypeError("the Python runtime currently supports float32 only")
 
-        expected_size = element_count(self.shape)
+        expected_size = _element_count(self.shape)
 
         if len(self.data) != expected_size:
             raise ValueError(f"shape {self.shape} needs {expected_size} values, got {len(self.data)}")
@@ -48,13 +74,6 @@ class Tensor:
         values: Iterable[float] 
     ) -> Tensor:
         return cls(shape, tuple(float(value) for value in values))
-
-    @classmethod
-    def from_proto(
-        cls,
-        proto: TensorProto
-    ) -> Tensor:
-        return cls(proto.shape, proto.data, proto.dtype)
 
     @property
     def size(self) -> int:
