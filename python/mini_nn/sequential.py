@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from mini_ort import Tensor
+from mini_ort.model import LayerSpec
 from .module import Module
+
+
 
 
 class Sequential(Module):
@@ -19,15 +21,10 @@ class Sequential(Module):
         self._modules = tuple(modules)
 
 
-    def forward(
-            self,
-            input_tensor: Tensor
-    ) -> Tensor:
-        output = input_tensor
-        for module in self._modules:
-            output = module(output)
-
-        return output
+    def layer_specs(self) -> tuple[LayerSpec, ...]:
+        return tuple(
+            layer for module in self._modules for layer in module.layer_specs()
+        )
 
 
     def named_chilren(self) -> Iterator[tuple[str, Module]]:

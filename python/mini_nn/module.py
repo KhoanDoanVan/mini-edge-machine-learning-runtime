@@ -4,18 +4,23 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
+from pathlib import Path
 
 from mini_ort import Tensor
+from mini_ort.model import LayerSpec
 
 
 class Module(ABC):
 
-    @abstractmethod
     def forward(
-        self,
-        input_tensor: Tensor
+            self,
+            input_tensor: Tensor
     ) -> Tensor:
-        raise NotImplementedError
+
+        from mini_ort import InferenceSession
+
+        with InferenceSession(self) as session:
+            return session.run(input_tensor)
 
     def __call__(
             self,
@@ -23,16 +28,42 @@ class Module(ABC):
     ) -> Tensor:
         return self.forward(input_tensor)
 
-    def named_children(self) -> Iterator[tuple[str, Module]]:
+
+    @abstractmethod
+    def layer_specs(self) -> tuple[LayerSpec, ...]:
+        raise NotImplementedError
+
+    def named_children(self) -> Iterator[
+        tuple[
+            str,
+            Module
+        ]
+    ]:
         return iter(())
 
     def named_parameters(
             self,
             prefix: str = ""
-    ) -> Iterator[tuple[str, Tensor]]:
+    ) -> Iterator[
+        tuple[
+            str,
+            Module
+        ]
+    ]:
         for child_name, child in self.named_children():
             yield from child.named_parameters(f"{prefix}{child_name}.")
 
-
     def state_dict(self) -> dict[str, Tensor]:
         return dict(self.named_parameters())
+
+    def save(
+            self,
+            path: str | Path
+    ):
+        
+        from mini_ort.serialization import save_model
+
+        return save_model(
+            self,
+            path
+        )

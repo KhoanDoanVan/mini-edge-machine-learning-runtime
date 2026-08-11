@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 from mini_ort import Tensor
-from mini_ort.reference import add, matmul, relu
+from mini_ort.model import LinearSpec, ReluSpec
 
 from .module import Module
 
@@ -36,28 +36,32 @@ class Linear(Module):
         self.bias = bias
 
 
-    def forward(
-            self,
-            input_tensor: Tensor
-    ) -> Tensor:
-        if len(input_tensor.shape) != 2 or input_tensor.shape[1] != self.in_features:
-            raise ValueError(
-                f"Linear input must have shape (batch, {self.in_features}), got {input_tensor.shape}"
+    def layer_specs(self) -> tuple[LinearSpec, ...]:
+        return (
+            LinearSpec(
+                self.in_features,
+                self.out_features,
+                self.weight,
+                self.bias
             )
+        )
 
-        output = matmul(input_tensor, self.weight)
-        return add(output, self.bias) if self.bias is not None else output
-
-
-    def named_parameters(self, prefix = "") -> Iterator[tuple[str, Tensor]]:
+    def named_parameters(
+            self, 
+            prefix = ""
+    ) -> Iterator[
+        tuple[
+            str,
+            Tensor
+        ]
+    ]:
         yield f"{prefix}weight", self.weight
         if self.bias is not None:
             yield f"{prefix}bias", self.bias
-
+    
 
 class ReLU(Module):
-    def forward(
-            self, 
-            input_tensor: Tensor
-    ) -> Tensor:
-        return relu(input_tensor)
+    def layer_specs(self) -> tuple[ReluSpec, ...]:
+        return (
+            ReluSpec()
+        )
