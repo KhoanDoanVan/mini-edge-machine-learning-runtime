@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Mapping, Protocol
+from typing import Protocol
 
 from .tensor import Tensor
 
@@ -17,6 +17,9 @@ class Backend(Protocol):
 
     def run(
             self,
-            feeds: Mapping[str, Tensor]
-    ) -> dict[str, Tensor]:
+            input_tensor: Tensor
+    ) -> Tensor:
+        ...
+
+    def close(self) -> None:
         ...
