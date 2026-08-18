@@ -33,15 +33,15 @@ namespace mini_ort::cpu {
                     const std::span<const Tensor* const> inputs
                 ) const override {
                     RequireInputs(
-                        input,
+                        inputs,
                         2,
                         "MatMul"
                     );
                     std::vector<Tensor> outputs;
                     outputs.emplace_back(
                         MatMul(
-                            *input[0],
-                            *input[1]
+                            inputs[0]->view(),
+                            inputs[1]->view()
                         )
                     );
 
@@ -64,9 +64,9 @@ namespace mini_ort::cpu {
                     );
                     std::vector<Tensor> outputs;
                     outputs.emplace_back(
-                        MatMul(
-                            *input[0],
-                            *input[1]
+                        Add(
+                            inputs[0]->view(),
+                            inputs[1]->view()
                         )
                     );
                     return outputs;
@@ -89,7 +89,7 @@ namespace mini_ort::cpu {
                     std::vector<Tensor> outputs;
                     outputs.emplace_back(
                         Relu(
-                            *inputs[0]
+                            inputs[0]->view()
                         )
                     );
 

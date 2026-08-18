@@ -8,8 +8,8 @@
 namespace mini_ort::cpu {
 
     Tensor MatMul(
-        const Tensor& lhs,
-        const Tensor& rhs
+        const ConstTensorView lhs,
+        const ConstTensorView rhs
     ) {
 
         if (lhs.shape().size() != 2 || rhs.shape().size() != 2) {

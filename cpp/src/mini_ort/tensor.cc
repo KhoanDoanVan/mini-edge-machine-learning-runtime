@@ -37,22 +37,44 @@ namespace mini_ort {
         }
     }
 
-    Tensor::Tensor(Shape shape, std::vector<float> data) : shape_(std::move(shape)), data_(std::move(data)) {
+    Tensor::Tensor(
+        Shape shape, 
+        std::vector<float> data
+    ) : shape_(std::move(shape)), storage_(std::move(data)) {
         const auto expected_size = ElementCount(shape_);
 
-        if (data_.size() != expected_size) {
+        if (storage_.size() != expected_size) {
             throw std::invalid_argument("tensor data size does not match its shape.");
         }
     }
 
-    std::size_t Tensor::size() const noexcept { return data_.size(); }
+    std::size_t Tensor::size() const noexcept { return storage_.size(); }
 
-    bool Tensor::empty() const noexcept { return data_.empty(); }
+    bool Tensor::empty() const noexcept { return storage_.empty(); }
 
     const Shape& Tensor::shape() const noexcept { return shape_; }
 
-    std::span<const float> Tensor::data() const noexcept { return data_; }
+    std::span<const float> Tensor::data() const noexcept { return storage_.data(); }
 
-    std::span<float> Tensor::mutable_data() noexcept { return data_; }
+    std::span<float> Tensor::mutable_data() noexcept { return storage_.mutable_data(); }
+
+    ConstTensorView Tensor::view() const {
+        return ConstTensorView(
+            shape_,
+            storage_.data()
+        );
+    }
+
+    TensorView Tensor::mutable_view() {
+        return TensorView(
+            shape_,
+            storage_.mutable_data()
+        );
+    }
+
+    const TensorStorage& Tensor::storage() const noexcept { return storage_; }
+
+    TensorStorage& Tensor::mutable_storage() noexcept { return storage_; }
+
 
 }

@@ -7,7 +7,7 @@
 
 namespace mini_ort::cpu {
 
-    Tensor Relu(const Tensor& input) {
+    Tensor Relu(const ConstTensorView input) {
     
         std::vector<float> output(input.size());
         // reads elements from an input range, applies a function to each element, and writes the results into an output range.
@@ -21,6 +21,14 @@ namespace mini_ort::cpu {
                     value
                 );
             }
+        );
+
+        return Tensor(
+            Shape(
+                input.shape().begin(),
+                input.shape().end()
+            ),
+            std::move(output)
         );
 
     }

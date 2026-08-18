@@ -7,14 +7,14 @@
 namespace mini_ort::cpu {
     
     Tensor Add(
-        const Tensor& lhs, 
-        const Tensor& rhs
+        const ConstTensorView lhs, 
+        const ConstTensorView rhs
     ) {
         std::vector<float> output(lhs.size());
         const auto lhs_data = lhs.data();
         const auto rhs_data = rhs.data();
 
-        if (lhs.shape() == rhs.shape()) {
+        if (std::ranges::equal(lhs.shape(), rhs.shape())) {
             for (std::size_t index = 0; index < lhs.size(); ++index) {
                 output[index] = lhs_data[index] + rhs_data[index];
             }
@@ -33,7 +33,10 @@ namespace mini_ort::cpu {
         }
 
         return Tensor(
-            lhs.shape(),
+            Shape(
+                lhs.shape().begin(),
+                lhs.shape().end()
+            ),
             std::move(output)
         );
 
