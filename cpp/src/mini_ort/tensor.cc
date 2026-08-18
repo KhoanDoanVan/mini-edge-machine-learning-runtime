@@ -37,6 +37,8 @@ namespace mini_ort {
         }
     }
 
+    Tensor::Tensor(Shape shape) : shape_(std::move(shape)), storage_(ElementCount(shape_)) {}
+
     Tensor::Tensor(
         Shape shape, 
         std::vector<float> data

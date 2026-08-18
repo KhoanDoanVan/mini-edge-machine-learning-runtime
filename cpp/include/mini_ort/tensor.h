@@ -59,6 +59,7 @@ namespace mini_ort {
     class Tensor final {
 
         public:
+            explicit Tensor(Shape shape);
             Tensor(Shape shape, std::vector<float> data);
             Tensor(const Tensor& other) = default;
             Tensor& operator=(const Tensor& other) = default;

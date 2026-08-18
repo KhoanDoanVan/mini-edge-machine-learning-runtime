@@ -15,7 +15,10 @@ namespace mini_ort {
         public:
 
         virtual ~Kernel() = default;
-        virtual std::vector<Tensor> Compute(std::span<const Tensor* const> inputs) const = 0;
+        virtual void Compute(
+            std::span<const ConstTensorView> inputs,
+            TensorView output
+        ) const = 0;
 
     };
 

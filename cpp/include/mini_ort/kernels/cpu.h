@@ -7,9 +7,9 @@
 
 namespace mini_ort::cpu {
 
-    Tensor MatMul(ConstTensorView lhs, ConstTensorView rhs);
-    Tensor Add(ConstTensorView lhs, ConstTensorView rhs);
-    Tensor Relu(ConstTensorView input);
+    Tensor MatMul(ConstTensorView lhs, ConstTensorView rhs, TensorView output);
+    Tensor Add(ConstTensorView lhs, ConstTensorView rhs, TensorView output);
+    Tensor Relu(ConstTensorView input, TensorView output);
 
     void RegisterKernels(KernelRegistry& registry);
     
