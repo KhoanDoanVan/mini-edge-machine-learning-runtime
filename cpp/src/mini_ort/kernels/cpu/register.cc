@@ -9,19 +9,13 @@ namespace mini_ort::cpu {
 
     namespace {
 
-        void RequireInputs(
-            std::span<const Tensor* const> inputs,
+        void RequireInputCount(
+            const std::span<const ConstTensorView> inputs,
             const std::size_t expected,
             const char* op_type
         ) {
             if (inputs.size() != expected) {
                 throw std::invalid_argument(std::string(op_type) + " received an invalid input count");
-            }
-
-            for (const Tensor* input : inputs) {
-                if (input == nullptr) {
-                    throw std::invalid_argument(std::string(op_type) + " received a null input");
-                }
             }
         }
 
@@ -29,23 +23,20 @@ namespace mini_ort::cpu {
 
             public:
 
-                std::vector<Tensor> Compute(
-                    const std::span<const Tensor* const> inputs
+                void Compute(
+                    const std::span<const ConstTensorView> inputs,
+                    const TensorView output
                 ) const override {
-                    RequireInputs(
+                    RequireInputCount(
                         inputs,
                         2,
                         "MatMul"
                     );
-                    std::vector<Tensor> outputs;
-                    outputs.emplace_back(
-                        MatMul(
-                            inputs[0]->view(),
-                            inputs[1]->view()
-                        )
+                    MatMul(
+                        inputs[0],
+                        inputs[1],
+                        output
                     );
-
-                    return outputs;
                 }
 
         };
@@ -54,22 +45,20 @@ namespace mini_ort::cpu {
 
             public:
 
-                std::vector<Tensor> Compute(
-                    const std::span<const Tensor* const> inputs
+                void Compute(
+                    const std::span<const ConstTensorView> inputs,
+                    const TensorView output
                 ) const override {
-                    RequireInputs(
+                    RequireInputCount(
                         inputs,
                         2,
-                        "MatMul"
+                        "Add"
                     );
-                    std::vector<Tensor> outputs;
-                    outputs.emplace_back(
-                        Add(
-                            inputs[0]->view(),
-                            inputs[1]->view()
-                        )
+                    Add(
+                        inputs[0],
+                        inputs[1],
+                        output
                     );
-                    return outputs;
                 }
 
         };
@@ -78,22 +67,19 @@ namespace mini_ort::cpu {
 
             public:
             
-                std::vector<Tensor> Compute(
-                    const std::span<const Tensor* const> inputs
+                void Compute(
+                    const std::span<const ConstTensorView> inputs
+                    const TensorView output
                 ) const override {
-                    RequireInputs(
+                    RequireInputCount(
                         inputs,
                         1,
                         "Relu"
                     );
-                    std::vector<Tensor> outputs;
-                    outputs.emplace_back(
-                        Relu(
-                            inputs[0]->view()
-                        )
+                    Relu(
+                        inputs[0],
+                        output
                     );
-
-                    return outputs;
                 }
 
         };

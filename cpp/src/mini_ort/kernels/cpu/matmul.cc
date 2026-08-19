@@ -9,7 +9,8 @@ namespace mini_ort::cpu {
 
     Tensor MatMul(
         const ConstTensorView lhs,
-        const ConstTensorView rhs
+        const ConstTensorView rhs,
+        const TensorView output
     ) {
 
         if (lhs.shape().size() != 2 || rhs.shape().size() != 2) {
@@ -26,12 +27,19 @@ namespace mini_ort::cpu {
         }
 
         // output owns a heap allocation containing all MatMul results.
-        std::vector<float> output(
-            rows * columns,
-            0.0F
-        );
+        // std::vector<float> output(
+        //     rows * columns,
+        //     0.0F
+        // );
         const auto lhs_data = lhs.data();
         const auto rhs_data = rhs.data();
+        const auto output_data = output.mutable_data();
+
+        std::fill(
+            output_data.begin(),
+            output_data.end(),
+            0.0F
+        );
 
         // i-k-j keeps rhs and output access contiguous in the innermost loop.
         for (std::size_t row = 0; row < rows; ++row) {
@@ -43,19 +51,19 @@ namespace mini_ort::cpu {
                 const auto rhs_row = reduction * columns;
 
                 for (std::size_t column = 0; column < columns; ++column) {
-                    output[output_row + column] += lhs_value * rhs_data[rhs_row + column];
+                    output_data[output_row + column] += lhs_value * rhs_data[rhs_row + column];
                 }
             }
         }
 
-        return Tensor(
-            {
-                static_cast<std::int64_t>(rows),
-                static_cast<std::int64_t>(columns)
-            },
-            // ownership of output’s internal memory instead of copying it
-            std::move(output)
-        );
+        // return Tensor(
+        //     {
+        //         static_cast<std::int64_t>(rows),
+        //         static_cast<std::int64_t>(columns)
+        //     },
+        //     // ownership of output’s internal memory instead of copying it
+        //     std::move(output)
+        // );
 
     }
 
