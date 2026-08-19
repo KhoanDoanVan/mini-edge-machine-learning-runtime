@@ -5,6 +5,8 @@
 #include <span>
 #include <vector>
 
+#include "mini_ort/allocator.h"
+
 namespace mini_ort {
 
     struct TensorMemoryStats final {
@@ -25,8 +27,14 @@ namespace mini_ort {
     class TensorStorage final {
 
         public:
-            explicit TensorStorage(std::size_t element_count);
-            explicit TensorStorage(std::vector<float> data);
+            explicit TensorStorage(
+                std::size_t element_count,
+                Allocator& allocator = DefaultAllocator()
+            );
+            explicit TensorStorage(
+                std::vector<float> data,
+                Allocator& allocator = DefaultAllocator()
+            );
 
             TensorStorage(const TensorStorage& other);
             TensorStorage& operator=(const TensorStorage& other);
@@ -40,8 +48,16 @@ namespace mini_ort {
             [[nodiscard]] std::span<float> mutable_data() noexcept;
 
         private:
-            std::vector<float> data_;
+
+            void Release() noexcept;
+
+            Allocator* allocator_;
+
+            // std::vector<float> data_;
+            float* data_;
+
+            std::size_t element_count_;
             std::uint64_t tracked_bytes_ = 0;
-    }
+    };
 
 }

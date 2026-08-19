@@ -2,6 +2,10 @@
 
 #include <atomic>
 #include <utility>
+#include <limits>
+#include <stdexcept>
+#include <utility>
+
 
 
 namespace mini_ort {
@@ -71,6 +75,23 @@ namespace mini_ort {
 
         }
 
+        void TrackCopy(
+            const std::uint64_t bytes
+        ) noexcept {
+            if (bytes == 0) {
+                return;
+            }
+
+            tensor_copies.fetch_add(
+                1,
+                std::memory_order_relaxed
+            );
+            copied_bytes.fetch_add(
+                bytes,
+                std::memory_order_relaxed
+            );
+        }
+
         void ReleaseBuffer(
             const std::uint64_t bytes
         ) noexcept {
@@ -83,9 +104,14 @@ namespace mini_ort {
         }
 
         std::uint64_t BufferBytes(
-            const std::vector<float>& data
+            // const std::vector<float>& data
+            const std::size_t element_count
         ) noexcept {
-            return static_cast<std::uint64_t>(data.capacity()) * sizeof(float);
+            if (element_count > std::numeric_limits<std::size_t>::max() / sizeof(float)) {
+                throw std::overflow_error("tensor storage byte size overflows size_t");
+            }
+            // return static_cast<std::uint64_t>(data.capacity()) * sizeof(float);
+            return static_cast<std::uint64_t>(element_count) * sizeof(float);
         }
     }
 
@@ -123,25 +149,65 @@ namespace mini_ort {
         );
     }
 
-    TensorStorage::TensorStorage(const std::size_t element_count) : data_(element_count), tracked_bytes_(BufferBytes(data_)) {
+    TensorStorage::TensorStorage(
+        const std::size_t element_count,
+        Allocator& allocator
+    ) : allocator_(&allocator), 
+        data_(nullptr),
+        element_count_(element_count),
+        tracked_bytes_(BufferBytes(element_count))
+    {
+        data_ = static_cast<float*>(allocator_->Allocate(
+            tracked_bytes_,
+            kTensorAlignment
+        ));
         TrackBuffer(
             tracked_bytes_,
             false
         );
     }
 
-    TensorStorage::TensorStorage(std::vector<float> data) : data_(std::move(data)), tracked_bytes_(BufferBytes(data_)) {
-        TrackBuffer(
-            tracked_bytes_,
-            false
-        );
+    TensorStorage::TensorStorage(
+        std::vector<float> data,
+        Allocator& allocator
+    ) : TensorStorage(
+        data.size(),
+        allocator
+    ) {
+        if (!data.empty()) {
+            std::copy(
+                data.begin(),
+                data.end(),
+                data_
+            );
+            TrackCopy(
+                tracked_bytes_
+            );
+        }
+        // TrackBuffer(
+        //     tracked_bytes_,
+        //     false
+        // );
     }
 
-    TensorStorage::TensorStorage(const TensorStorage& other) : data_(other.data_), tracked_bytes_(BufferBytes(data_)) {
-        TrackBuffer(
-            tracked_bytes_,
-            true
-        );
+    TensorStorage::TensorStorage(const TensorStorage& other) : TensorStorage(
+        other.element_count_,
+        *other.allocator_ 
+    ) {
+        if (!other.empty()) {
+            std::copy(
+                other.data_,
+                other.data_ + other.element_count_,
+                data_
+            );
+            TrackCopy(
+                tracked_bytes_
+            );
+        }
+        // TrackBuffer(
+        //     tracked_bytes_,
+        //     true
+        // );
     }
 
     TensorStorage& TensorStorage::operator=(const TensorStorage& other) {
@@ -150,7 +216,19 @@ namespace mini_ort {
         }
 
         TensorStorage copy(other);
-        data_.swap(copy.data_);
+        std::swap(
+            allocator_,
+            copy.allocator_
+        );
+        std::swap(
+            data_,
+            copy.data_
+        );
+        std::swap(
+            element_count_,
+            copy.element_count_
+        );
+        // data_.swap(copy.data_);
         std::swap(
             tracked_bytes_,
             copy.tracked_bytes_
@@ -159,7 +237,7 @@ namespace mini_ort {
         return *this;
     }
 
-    TensorStorage::TensorStorage(TensorStorage&& other) noexcept : data_(std::move(other.data_)), tracked_bytes_(std::exchange(other.tracked_bytes_, 0)) {}
+    TensorStorage::TensorStorage(TensorStorage&& other) noexcept : allocator_(std::exchange(other.allocator_, &DefaultAllocator())), data_(std::exchange(other.data_, nullptr)), element_count_(std::exchange(other.element_count_, 0)), tracked_bytes_(std::exchange(other.tracked_bytes_, 0)) {}
 
     TensorStorage& TensorStorage::operator=(TensorStorage&& other) noexcept {
 
@@ -167,8 +245,22 @@ namespace mini_ort {
             return *this;
         }
 
-        ReleaseBuffer(tracked_bytes_);
-        data_ = std::move(other.data_);
+        // ReleaseBuffer(tracked_bytes_);
+        Release();
+        allocator_ = std::exchange(
+            other.allocator_,
+            &DefaultAllocator()
+        );
+        // data_ = std::move(other.data_);
+        data_ = std::exchange(
+            other.data_,
+            nullptr
+        );
+
+        element_count_ = std::exchange(
+            other.element_count_,
+            0
+        );
         tracked_bytes_ = std::exchange(
             other.tracked_bytes_,
             0
@@ -180,15 +272,28 @@ namespace mini_ort {
 
 
     TensorStorage::~TensorStorage() { 
-        ReleaseBuffer(tracked_bytes_);
+        // ReleaseBuffer(tracked_bytes_);
+        Release();
     }
 
-    std::size_t TensorStorage::size() const noexcept { return data_.size(); }
+    void TensorStorage::Release() noexcept {
+        if (allocator_ != nullptr) {
+            allocator_->Deallocate(data_);
+        }
 
-    bool TensorStorage::empty() const noexcept { return data_.empty(); }
+        ReleaseBuffer(tracked_bytes_);
+        allocator_ = nullptr;
+        data_ = nullptr;
+        element_count_ = 0;
+        tracked_bytes_ = 0;
+    }
 
-    std::span<const float> TensorStorage::data() const noexcept { return data_; }
+    std::size_t TensorStorage::size() const noexcept { return element_count_; }
 
-    std::span<float> TensorStorage::mutable_data() noexcept { return data_; }
+    bool TensorStorage::empty() const noexcept { return element_count_ == 0; }
+
+    std::span<const float> TensorStorage::data() const noexcept { return {data_, element_count_}; }
+
+    std::span<float> TensorStorage::mutable_data() noexcept { return {data_, element_count_}; }
 
 }
