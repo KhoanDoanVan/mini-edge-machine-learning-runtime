@@ -64,7 +64,19 @@ namespace mini_ort {
             };
         }
 
-    }
+        std::size_t LinearCount(const SequentialModel& model) noexcept {
+            std::size_t count = 0;
+
+            for (const auto& layer : model.layers()) {
+                if (std::holds_alternative<LinearLayer>(layer)) {
+                    ++count;
+                }
+            }
+
+            return count;
+        }
+
+    } // namespace
 
     InferenceSession::InferenceSession(SequentialModel model) : model_(std::move(model)) {
         cpu::RegisterKernels(registry_);
@@ -74,32 +86,66 @@ namespace mini_ort {
 
 
     Tensor InferenceSession::Run(const Tensor& input) const {
-        const Tensor* current = &input;
-        std::optional<Tensor> owned_value;
 
+        auto current = input.view();
+        std::optional<TensorView> writable_current;
+        std::optional<Tensor> result;
+
+        std::size_t remaining_linears = LinearCount(model_);
+        std::size_t next_scratch_slot = 0;
+
+        // const Tensor* current = &input;
+        // std::optional<Tensor> owned_value;
+
+        const auto acquire_scratch = [&](const ShapeView shape) {
+            const auto slot = next_scratch_slot;
+            next_scratch_slot = (next_scratch_slot + 1) % RunWorkspace::kSlotCount;
+            return workspace_.Acquire(
+                slot,
+                shape
+            );
+        };
+        
 
         for (const auto& layer : model_.layers()) {
             
             if (const auto* linear = std::get_if<LinearLayer>(&layer)) {
 
-                const auto current_view = current->view();
+                // const auto current_view = current->view();
                 const auto weight_view = linear->weight.view();
-
-                Tensor linear_output(
-                    MatMulOutputShape(
-                        current_view,
-                        weight_view
-                    )
+                const auto output_shape = MatMulOutputShape(
+                    current,
+                    weight_view
                 );
+                --remaining_linears;
+
+                std::optional<TensorView> destination;
+
+                if (remaining_linears == 0) {
+                    result.emplace(output_shape);
+                    destination.emplace(result->mutable_view());
+                } else {
+                    destination.emplace(
+                        acquire_scratch(output_shape)
+                    );
+                }
+
+                // Tensor linear_output(
+                //     MatMulOutputShape(
+                //         current_view,
+                //         weight_view
+                //     )
+                // );
 
                 Execute(
                     registry_,
                     "MatMul",
                     {
-                        current_view,
+                        // current_view,
+                        current,
                         weight_view
                     },
-                    linear_output.mutable_view()
+                    *destination
                 );
 
                 if (linear->bias.has_value()) {
@@ -107,14 +153,14 @@ namespace mini_ort {
                         registry_,
                         "Add",
                         {
-                            linear_output.view(),
+                            destination.as_count(),
                             linear->bias->view()
                         },
-                        linear_output.mutable_view()
-                    )
+                        *destination
+                    );
                 }
 
-                owned_value = std::move(linear_output);
+                // owned_value = std::move(linear_output);
 
                 // auto linear_output = Execute(
                 //     registry_,
@@ -138,6 +184,9 @@ namespace mini_ort {
                 //     owned_value = std::move(linear_output);
                 // }
 
+                current = destination->ac_const();
+                writable_current = *destination;
+
             } else {
                 // owned_value = Execute(
                 //     registry_,
@@ -146,33 +195,77 @@ namespace mini_ort {
                 //         current
                 //     }
                 // );
-                if (owned_value.has_value()) {
+                // if (owned_value.has_value()) {
+                //     Execute(
+                //         registry_,
+                //         "Relu",
+                //         {
+                //             owned_value->view()
+                //         },
+                //         owned_value->mutable_view()
+                //     );
+                // } else {
+                //     Tensor relu_output(current->shape());
+                //     Execute(
+                //         registry_,
+                //         "Relu",
+                //         {
+                //             current->view()
+                //         },
+                //         relu_output.mutable_view()
+                //     );
+                //     owned_value = std::move(relu_output);
+                // }
+                if (writable_current.has_value()) {
                     Execute(
                         registry_,
                         "Relu",
                         {
-                            owned_value->view()
+                            current
                         },
-                        owned_value->mutable_view()
+                        *writable_current
                     );
                 } else {
-                    Tensor relu_output(current->shape());
+                    std::optional<TensorView> destination;
+
+                    if (remaining_linears == 0) {
+                        result.emplace(
+                            Shape(
+                                current.shape().begin(),
+                                current.shape().end()
+                            )
+                        );
+                        destination.emplace(
+                            result->mutable_view()
+                        );
+                    } else {
+                        destination.emplace(
+                            acquire_scratch(
+                                current.shape()
+                            )
+                        );
+                    }
+
                     Execute(
                         registry_,
                         "Relu",
                         {
-                            current->view()
+                            current
                         },
-                        relu_output.mutable_view()
+                        *destination
                     );
-                    owned_value = std::move(relu_output);
+
+                    current = destination->as_const();
+
+                    writable_current = *destination;
                 }
             }
 
-            current = &*owned_value;
+            // current = &*owned_value;
         }
 
-        return std::move(*owned_value);
+        // return std::move(*owned_value);
+        return std::move(*result);
     }
 
-}
+} // namespace
