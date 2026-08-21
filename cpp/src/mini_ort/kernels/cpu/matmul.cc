@@ -26,6 +26,14 @@ namespace mini_ort::cpu {
             throw std::invalid_argument("MatMul inner dimensions must match");
         }
 
+        if (output.shape().size() != 2 || output.shape()[0] != static_cast<std::int64_t>(rows) || output.shape()[1] != static_cast<std::int64_t>(columns)) {
+            throw std::invalid_argument("MatMul output shape is invalid");
+        }
+
+        if (output.data().data() == lhs.data().data() || output.data().data() == rhs.data().data()) {
+            throw std::invalid_argument("Matmul does not support aliased output");
+        }
+
         // output owns a heap allocation containing all MatMul results.
         // std::vector<float> output(
         //     rows * columns,

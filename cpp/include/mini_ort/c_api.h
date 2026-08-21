@@ -52,6 +52,8 @@ void MiniOrtReleaseValue(MiniOrtValue* value);
 
 MiniOrtStatus* MiniOrtRun(MiniOrtSession* session, const MiniOrtValue* input, MiniOrtValue** output);
 
+MiniOrtStatus* MiniOrtRunInto(MiniOrtSession* session, const MiniOrtValue* input, MiniOrtValue* output);
+
 
 #ifdef __cplusplus
 }

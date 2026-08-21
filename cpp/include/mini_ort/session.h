@@ -22,6 +22,12 @@ namespace mini_ort {
         // Run reuses internal scratch buffers and must not be called concurrently on
         // the same session.
         [[nodiscard]] Tensor Run(const Tensor& input) const;
+        void RunInto(
+            ConstTensorView input,
+            TensorView output
+        ) const;
+        [[nodiscard]] Shape OutputShape(ConstTensorView input) const;
+
         
         private:
 

@@ -71,7 +71,7 @@ namespace {
         return std::vector<float>(data, data + count);
     }
 
-}
+} // namespace
 
 
 const char* MiniOrtGetErrorMessage(const MiniOrtStatus* status) {
@@ -274,4 +274,22 @@ MiniOrtStatus* MiniOrtRun(
             );
         }
     );
+}
+
+
+MiniOrtStatus* MiniOrtRunInto(
+    MiniOrtSession* session,
+    const MiniOrtValue* input,
+    MiniOrtValue* output
+) {
+    return Guard([&] {
+        if (session == nullptr || input == nullptr || output == nullptr) {
+            throw std::invalid_argument("session, input, and output must not be null");
+        }
+
+        session->session.RunInto(
+            input->tensor.view(),
+            output->tensor.mutable_view()
+        );
+    });
 }
