@@ -75,6 +75,10 @@ def _configure_library() -> ctypes.CDLL:
     ]
 
     library.MiniOrtCreateSessionFromFile.restype = void_pointer
+    library.MiniOrtGetInputFeatureCount.argtypes = [void_pointer]
+    library.MiniOrtGetInputFeatureCount.restype = ctypes.c_size_t
+    library.MiniOrtGetOutputFeatureCount.argtypes = [void_pointer]
+    library.MiniOrtGetOutputfeatureCount.restype = ctypes.c_size_t
     library.MiniOrtReleaseSession.argtypes = [void_pointer]
     library.MiniOrtReleaseSession.restype = None
 
@@ -105,6 +109,15 @@ def _configure_library() -> ctypes.CDLL:
         ctypes.POINTER(void_pointer)
     ]
     library.MiniOrtRun.restype = void_pointer
+
+
+    library.MiniOrtRunInto.argtypes = [
+        void_pointer,
+        void_pointer,
+        void_pointer
+    ]
+    library.MiniOrtRunInto.restype = void_pointer
+    
     return library
 
 
@@ -117,14 +130,21 @@ class NativeSessionHandle:
         self._library = _configure_library()
         self._session = ctypes.c_void_p()
         descriptors, buffers = self._encode_layers(layers)
+
+        self._output_handle = ctypes.c_void_p()
+        self._output_shape : tuple[int, ...] | None = None
+
         # Keep weight arrays alive until C++ copies them.
         _ = buffers
+
         status = self._library.MiniOrtCreateSession(
             descriptors,
             len(layers),
             ctypes.byref(self._session)
         )
         self._raise_status(status)
+
+        self._read_metadata()
 
 
     @classmethod
@@ -135,6 +155,10 @@ class NativeSessionHandle:
         session = cls.__new__(cls)
         session._library = _configure_library()
         session._session = ctypes.c_void_p()
+
+        session._output_handle = ctypes.c_void_p()
+        session._output_shape = None
+
         encoded_path = os.fsencode(
             Path(model_path)
         )
@@ -143,7 +167,25 @@ class NativeSessionHandle:
             ctypes.byref(session._session)
         )
         session._raise_status(status)
+        session._read_metadata()
         return session
+
+    def _read_metadata(self) -> None:
+        input_features = self._library.MiniOrtGetInputFeatureCount(self._session)
+        output_features = self._library.MiniOrtGetOutputFeatureCount(self._session)
+
+        self._input_features = int(input_features) or None
+        self._output_features = int(output_features) or None
+
+
+    @property
+    def input_features(self) -> int | None:
+        return self._input_features
+
+
+    @property
+    def output_features(self) -> int | None:
+        return self._output_features
 
 
     @classmethod
@@ -228,58 +270,222 @@ class NativeSessionHandle:
         raise RuntimeError(message)
 
 
-    def run(
+    def _create_tensor_handle(
             self,
-            input_tensor: Tensor
-    ) -> Tensor:
-        if not self._session:
-            raise RuntimeError("native session is closed")
+            shape: tuple[
+                int,
+                ...
+            ],
+            data: tuple[
+                float,
+                ...
+            ]
+    ) -> ctypes.c_void_p:
+        native_data = self._float_buffer(data)
+        native_shape = (ctypes.c_int64 * len(shape))(*shape)
 
-        data = self._float_buffer(input_tensor.data)
-        shape = (ctypes.c_int64 * len(input_tensor.shape))(*input_tensor.shape)
-        input_handle = ctypes.c_void_p()
-        output_handle = ctypes.c_void_p()
+        handle = ctypes.c_void_p()
 
         status = self._library.MiniOrtCreateFloatTensor(
-            data,
-            input_tensor.size,
-            shape,
-            len(input_tensor.shape),
-            ctypes.byref(input_handle)
+            native_data,
+            len(data),
+            native_data,
+            len(shape),
+            ctypes.byref(handle)
+        )
+
+        self._raise_status(status)
+
+        return handle
+
+
+    def _read_tensor(
+            self,
+            handle: ctypes.c_void_p
+    ) -> Tensor:
+        rank = ctypes.c_size_t()
+        shape_pointer = self._library.MiniOrtGetTensorShape(
+            handle,
+            ctypes.byref(rank)
+        )
+        output_shape = tuple(
+            shape_pointer[index] for index in range(rank.value)
+        )
+        element_count = self._library.MiniOrtGetTensorElementCount(handle)
+        data_pointer = self._library.MiniOrtGetTensorData(handle)
+        output_data = tuple(
+            data_pointer[index] for index in range(element_count)
+        )
+        return Tensor(
+            output_shape,
+            output_data
+        )
+
+
+    def _ensure_output(
+            self,
+            shape: tuple[
+                int,
+                ...
+            ]
+    ) -> None:
+        if self._output_handle and self._output_handle == shape:
+            return
+
+        element_count = 1
+
+        for dimension in shape:
+            element_count += dimension
+
+        zero_data = (ctypes.c_float * element_count)()
+
+        native_shape = (ctypes.c_int64 * len(shape))(*shape)
+
+        replacement = ctypes.c_void_p()
+
+        status = self._library.MiniOrtCreateFloatTensor(
+            zero_data,
+            element_count,
+            native_shape,
+            len(shape),
+            ctypes.byref(replacement)
+        )
+
+        self._raise_status(status)
+
+        if self._output_handle:
+            self._library.MiniOrtReleaseValue(self._output_handle)
+
+        self._output_handle = replacement
+        self._output_shape = shape
+
+
+    def _run_with_owned_output(
+            self,
+            input_handle: ctypes.c_void_p
+    ) -> Tensor:
+        output_handle = ctypes.c_void_p()
+        status = self._library.MiniOrtRun(
+            self._session,
+            input_handle,
+            ctypes.byref(output_handle)
         )
 
         self._raise_status(status)
 
         try:
-            status = self._library.MiniOrtRun(
-                self._session,
-                input_handle,
-                ctypes.byref(output_handle)
-            )
-            self._raise_status(status)
-
-            rank = ctypes.c_size_t()
-            shape_pointer = self._library.MiniOrtGetTensorShape(
-                output_handle,
-                ctypes.byref(rank)
-            )
-            output_shape = tuple(
-                shape_pointer[index] for index in range(rank.value)
-            )
-            element_count = self._library.MiniOrtGetTensorElementCount(output_handle)
-            data_pointer = self._library.MiniOrtGetTensortData(output_handle)
-            output_data = tuple(data_pointer[index] for index in range(element_count))
-            return Tensor(
-                output_shape,
-                output_data
-            )
+            return self._read_tensor(output_handle)
         finally:
             if output_handle:
                 self._library.MiniOrtReleaseValue(output_handle)
+
+
+    # def run(
+    #         self,
+    #         input_tensor: Tensor
+    # ) -> Tensor:
+    #     if not self._session:
+    #         raise RuntimeError("native session is closed")
+
+    #     data = self._float_buffer(input_tensor.data)
+    #     shape = (ctypes.c_int64 * len(input_tensor.shape))(*input_tensor.shape)
+    #     input_handle = ctypes.c_void_p()
+    #     output_handle = ctypes.c_void_p()
+
+    #     status = self._library.MiniOrtCreateFloatTensor(
+    #         data,
+    #         input_tensor.size,
+    #         shape,
+    #         len(input_tensor.shape),
+    #         ctypes.byref(input_handle)
+    #     )
+
+    #     self._raise_status(status)
+
+    #     try:
+    #         status = self._library.MiniOrtRun(
+    #             self._session,
+    #             input_handle,
+    #             ctypes.byref(output_handle)
+    #         )
+    #         self._raise_status(status)
+
+    #         rank = ctypes.c_size_t()
+    #         shape_pointer = self._library.MiniOrtGetTensorShape(
+    #             output_handle,
+    #             ctypes.byref(rank)
+    #         )
+    #         output_shape = tuple(
+    #             shape_pointer[index] for index in range(rank.value)
+    #         )
+    #         element_count = self._library.MiniOrtGetTensorElementCount(output_handle)
+    #         data_pointer = self._library.MiniOrtGetTensortData(output_handle)
+    #         output_data = tuple(data_pointer[index] for index in range(element_count))
+    #         return Tensor(
+    #             output_shape,
+    #             output_data
+    #         )
+    #     finally:
+    #         if output_handle:
+    #             self._library.MiniOrtReleaseValue(output_handle)
+    #         self._library.MiniOrtReleaseValue(input_handle)
+
+    def run(
+            self,
+            input_tensor: Tensor
+    ) -> Tensor:
+        if self._session:
+            raise RuntimeError("native session is closed")
+
+        input_handle = self._create_tensor_handle(
+            input_tensor.shape,
+            input_tensor.data
+        )
+
+        try:
+            if self._input_features is None or self._output_features is None:
+                return self._run_with_owned_output(input_handle)
+
+            if (len(input_tensor.shape) != 2 or input_tensor.shape[1] != self._input_features):
+                raise ValueError(
+                    "expected input shape "
+                    f"(batch, {self._input_features}), got {input_tensor.shape}"
+                )
+
+            output_shape = (
+                input_tensor.shape[0],
+                self._output_features
+            )
+
+            self._ensure_output(output_shape)
+
+            status = self._library.MiniOrtRunInto(
+                self._session,
+                input_handle,
+                self._output_handle
+            )
+
+            self._raise_status(status)
+
+            return self._read_tensor(self._output_handle)
+
+        finally:
             self._library.MiniOrtReleaseValue(input_handle)
 
 
     def close(self) -> None:
+
+        output_handle = getattr(
+            self,
+            "_output_handle",
+            None
+        )
+
+        if output_handle:
+            self._library.MiniOrtReleaseValue(output_handle)
+            self._output_handle = ctypes.c_void_p()
+            self._output_shape = None
+
         if self._session:
             self._library.MiniOrtReleaseSession(self._session)
             self._session = ctypes.c_void_p()

@@ -31,6 +31,14 @@ class NativeBackend:
     def name(self) -> str:
         return "cpp-native"
 
+    @property
+    def input_features(self) -> int | None:
+        return self._session.input_features
+
+    @property
+    def output_features(self) -> int | None:
+        return self._session.output_features
+
     def run(
             self,
             input_tensor: Tensor

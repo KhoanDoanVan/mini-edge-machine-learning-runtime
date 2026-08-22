@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from mini_ort.model import LayerSpec
+from mini_ort.model import LayerSpec, LinearSpec
 from .module import Module
 
 
@@ -16,9 +16,17 @@ class Sequential(Module):
             raise ValueError("Sequential requires at least one module")
 
         if any(not isinstance(module, Module) for module in modules):
-            raise TypeError("Sequential accepts Module instances only")
+            raise TypeError("Sequential accepts Module instanc/es only")
 
         self._modules = tuple(modules)
+
+        current_features: int | None = None
+
+        for layer in self.layer_specs():
+            if isinstance(layer, LinearSpec):
+                if (current_features is not None and current_features != layer.in_features):
+                    raise ValueError("adjacent Linear layers have incompatible features counts")
+            current_features = layer.out_features
 
 
     def layer_specs(self) -> tuple[LayerSpec, ...]:
@@ -38,3 +46,6 @@ class Sequential(Module):
 
     def __iter__(self) -> Iterator[Module]:
         return iter(self._modules)
+
+    def __getitem__(self, index: int) -> Module:
+        return self._modules[index]
