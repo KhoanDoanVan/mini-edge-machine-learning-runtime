@@ -301,6 +301,26 @@ namespace mini_ort {
     }
 
 
+    std::size_t InferenceSession::InputFeatures() const noexcept {
+        for (const auto& layer : model_.layers()) {
+            if (const auto* linear = std::get_if<LinearLayer>(&layer)) {
+                return linear->in_features;
+            }
+        }
+
+        return 0;
+    }
+    
+    std::size_t InferenceSession::OutputFeatures() const noexcept {
+        for (auto layer = model_.layers().rbegin(); layer != model_.layers().rend(); ++layer) {
+            if (const auto* linear = std::get_if<LinearLayer>(&*layer)) {
+                return linear->out_features;
+            }
+        }
+
+        return 0;
+    }
+
     void InferenceSession::RunInto(
         const ConstTensorView input,
         const TensorView output

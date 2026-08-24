@@ -29,6 +29,10 @@ typedef struct MiniOrtLayerDesc {
 
 const char* MiniOrtGetErrorMessage(const MiniOrtStatus* status);
 
+size_t MiniOrtGetInputFeatureCount(const MiniOrtSession* session);
+
+size_t MiniOrtGetOutputFeatureCount(const MiniOrtSession* session);
+
 void MiniOrtReleaseStatus(MiniOrtStatus* status);
 
 MiniOrtStatus* MiniOrtCreateSession(const MiniOrtLayerDesc* layers, size_t layer_count, MiniOrtSession** output);

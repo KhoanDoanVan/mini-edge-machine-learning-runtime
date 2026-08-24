@@ -183,6 +183,14 @@ MiniOrtStatus* MiniOrtCreateSessionFromFile(
     );
 }
 
+size_t MiniOrtGetInputFeatureCount(const MiniOrtSession* session) {
+    return session == nullptr ? 0 : session->session.InputFeatures();
+}
+
+size_t MiniOrtGetOutputFeatureCount(const MiniOrtSession* session) {
+    return session == nullptr ? 0 : session->session.OutputFeatures();
+}
+
 
 void MiniOrtReleaseSession(MiniOrtSession* session) {
     delete session;

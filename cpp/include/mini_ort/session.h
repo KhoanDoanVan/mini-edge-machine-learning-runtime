@@ -27,6 +27,8 @@ namespace mini_ort {
             TensorView output
         ) const;
         [[nodiscard]] Shape OutputShape(ConstTensorView input) const;
+        [[nodiscard]] std::size_t InputFeatures() const noexcept;
+        [[nodiscard]] std::size_t OutputFeatures() const noexcept;
 
         
         private:
