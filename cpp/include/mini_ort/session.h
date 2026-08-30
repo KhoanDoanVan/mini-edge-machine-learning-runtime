@@ -33,6 +33,10 @@ namespace mini_ort {
         [[nodiscard]] std::size_t InputFeatures() const noexcept;
         [[nodiscard]] std::size_t OutputFeatures() const noexcept;
         [[nodiscard]] std::size_t InstructionCount() const noexcept;
+        [[nodiscard]] std::size_t TemporaryCount() const noexcept;
+        [[nodiscard]] std::size_t ArenaSlotCount() const noexcept;
+        [[nodiscard]] std::size_t ArenaLayoutBytes() const noexcept;
+        [[nodiscard]] std::size_t ArenaCapacityBytes() const noexcept;
 
         
         private:

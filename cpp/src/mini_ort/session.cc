@@ -103,6 +103,22 @@ namespace mini_ort {
         return plan_.size();
     }
 
+    std::size_t InferenceSession::TemporaryCount() const noexcept {
+        return plan_.memory_plan().temporary_count();
+    }
+
+    std::size_t InferenceSession::ArenaSlotCount() const noexcept {
+        return plan_.memory_plan().slot_count();
+    }
+
+    std::size_t InferenceSession::ArenaLayoutBytes() const noexcept {
+        return workspace_.arena_layout_bytes();
+    }
+
+    std::size_t InferenceSession::ArenaCapacityBytes() const noexcept {
+        return workspace_.arena_capacity_bytes();
+    }
+
 
     void InferenceSession::RunInto(
         const ConstTensorView input,
