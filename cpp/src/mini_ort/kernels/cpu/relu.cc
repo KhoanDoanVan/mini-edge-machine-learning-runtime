@@ -7,7 +7,7 @@
 
 namespace mini_ort::cpu {
 
-    Tensor Relu(
+    void Relu(
         const ConstTensorView input,
         const TensorView output
     ) {

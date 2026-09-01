@@ -6,7 +6,7 @@
 
 namespace mini_ort::cpu {
     
-    Tensor Add(
+    void Add(
         const ConstTensorView lhs, 
         const ConstTensorView rhs,
         const TensorView output
