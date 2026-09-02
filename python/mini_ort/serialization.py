@@ -29,7 +29,7 @@ def _write_float32(
 ) -> None:
     if values:
         file.write(
-            struct.pack(f"<{len(values)}", *values)
+            struct.pack(f"<{len(values)}f", *values)
         )
 
 

@@ -26,7 +26,7 @@ class Sequential(Module):
             if isinstance(layer, LinearSpec):
                 if (current_features is not None and current_features != layer.in_features):
                     raise ValueError("adjacent Linear layers have incompatible features counts")
-            current_features = layer.out_features
+                current_features = layer.out_features
 
 
     def layer_specs(self) -> tuple[LayerSpec, ...]:
@@ -35,7 +35,7 @@ class Sequential(Module):
         )
 
 
-    def named_chilren(self) -> Iterator[tuple[str, Module]]:
+    def named_children(self) -> Iterator[tuple[str, Module]]:
         for index, module in enumerate(self._modules):
             yield str(index), module
 

@@ -1,4 +1,4 @@
-"""Contigous row-major tensor storage."""
+"""Portable high-level tensor value used at the backend boundary."""
 
 
 from __future__ import annotations

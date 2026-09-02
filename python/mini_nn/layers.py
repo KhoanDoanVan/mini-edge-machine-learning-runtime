@@ -17,8 +17,8 @@ class Linear(Module):
             self,
             in_features: int,
             out_features: int,
-            weight: Tensor,
-            bias: Tensor | None = None,
+            weight: Tensor | None | None,
+            bias: Tensor | bool | None = None,
             *,
             initialization: Initializer = "xavier_uniform",
             seed: int | None = None
@@ -68,7 +68,7 @@ class Linear(Module):
                 self.out_features,
                 self.weight,
                 self.bias
-            )
+            ), # "," is tuple character syntax
         )
 
     def named_parameters(
@@ -95,5 +95,5 @@ class Linear(Module):
 class ReLU(Module):
     def layer_specs(self) -> tuple[ReluSpec, ...]:
         return (
-            ReluSpec()
+            ReluSpec(), # "," is tuple character syntax
         )

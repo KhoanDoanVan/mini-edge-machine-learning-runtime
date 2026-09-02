@@ -1,3 +1,17 @@
+# Python caches and local environments
 __pycache__/
+*.py[cod]
+/.venv/
 
-/.venv
+# Generated build output
+/build/
+/cpp/build/
+
+# macOS metadata
+.DS_Store
+
+# Xcode user and generated data
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcframework/
