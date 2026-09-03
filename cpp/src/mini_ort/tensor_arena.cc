@@ -67,7 +67,7 @@ namespace mini_ort {
         if (!storage_.has_value() || storage_->size() < layout_elements_) {
             TensorStorage replacement(
                 layout_elements_,
-                **allocator_
+                *allocator_
             );
             storage_ = std::move(replacement);
         }
@@ -83,7 +83,7 @@ namespace mini_ort {
 
         const auto& region = regions_[slot];
 
-        if (elements > region.capacity_) {
+        if (elements > region.capacity_elements) {
             throw std::invalid_argument("tensor arena slice exceeds its slot");
         }
 
@@ -128,10 +128,10 @@ namespace mini_ort {
     }
 
     std::size_t TensorArena::slot_capacity_elements(const std::size_t slot) const {
-        if (slot >= regions_size()) {
+        if (slot >= regions_.size()) {
             throw std::out_of_range("tensor arena slot is out of range");
         }
-        return region_[slot].capacity_elements;
+        return regions_[slot].capacity_elements;
     }
 
     std::size_t TensorArena::layout_bytes() const noexcept {

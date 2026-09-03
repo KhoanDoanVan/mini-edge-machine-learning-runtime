@@ -44,7 +44,7 @@ MiniOrtStatus* MiniOrtCreateSessionFromFile(
 
 void MiniOrtReleaseSession(MiniOrtSession* session);
 
-MiniOrtSession* MiniOrtCreateFloatTensor(const float* data, size_t element_count, const int64_t* shape, size_t rank, MiniOrtValue** output);
+MiniOrtStatus* MiniOrtCreateFloatTensor(const float* data, size_t element_count, const int64_t* shape, size_t rank, MiniOrtValue** output);
 
 const float* MiniOrtGetTensorData(const MiniOrtValue* value);
 

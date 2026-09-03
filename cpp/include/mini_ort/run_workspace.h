@@ -31,7 +31,7 @@ namespace mini_ort {
                 std::size_t slot,
                 ShapeView shape
             );
-            [[nodiscard]] ConstTensorView Get(std::size_t slot);
+            [[nodiscard]] ConstTensorView Get(std::size_t slot) const;
             [[nodiscard]] TensorView GetMutable(std::size_t slot);
             [[nodiscard]] std::size_t arena_layout_bytes() const noexcept;
             [[nodiscard]] std::size_t arena_capacity_bytes() const noexcept;
@@ -47,7 +47,8 @@ namespace mini_ort {
 
             // Allocator* allocator_;
             TensorArena arena_;
-            std::array<Slot> slots_;
+            // std::array<Slot> slots_;
+            std::vector<Slot> slots_;
             std::vector<std::size_t> concrete_slot_elements_;
 
     };

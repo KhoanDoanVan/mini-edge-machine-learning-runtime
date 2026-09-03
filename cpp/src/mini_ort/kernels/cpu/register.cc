@@ -68,7 +68,7 @@ namespace mini_ort::cpu {
             public:
             
                 void Compute(
-                    const std::span<const ConstTensorView> inputs
+                    const std::span<const ConstTensorView> inputs,
                     const TensorView output
                 ) const override {
                     RequireInputCount(
@@ -89,15 +89,15 @@ namespace mini_ort::cpu {
     void RegisterKernels(
         KernelRegistry& registry
     ) {
-        registry.Register(
+        registry.Registry(
             "MatMul",
             std::make_unique<MatMulKernel>()
         );
-        registry.Register(
+        registry.Registry(
             "Add",
             std::make_unique<AddKernel>()
         );
-        registry.Register(
+        registry.Registry(
             "Relu",
             std::make_unique<ReluKernel>()
         );

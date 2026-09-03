@@ -22,7 +22,7 @@ namespace mini_ort {
             explicit MemoryPlan(std::vector<ActivationLifetime> lifetimes);
 
             [[nodiscard]] std::size_t slot_for(std::size_t temporary_id) const;
-            [[nodiscard]] std::span<const std::size_t> slot_elements_per_patch() const noexcept;
+            [[nodiscard]] std::span<const std::size_t> slot_elements_per_batch() const noexcept;
             [[nodiscard]] const std::vector<ActivationLifetime>& lifetimes() const noexcept;
             [[nodiscard]] std::size_t temporary_count() const noexcept;
             [[nodiscard]] std::size_t slot_count() const noexcept;

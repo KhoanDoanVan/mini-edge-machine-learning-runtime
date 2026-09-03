@@ -29,7 +29,7 @@ struct MiniOrtValue {
     explicit MiniOrtValue(mini_ort::Tensor value) : tensor(std::move(value)) {}
 
     mini_ort::Tensor tensor;
-}
+};
 
 namespace {
 
@@ -237,7 +237,7 @@ MiniOrtStatus* MiniOrtCreateFloatTensor(
                 )
             );
         }
-    )
+    );
 }
 
 

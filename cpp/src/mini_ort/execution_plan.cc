@@ -229,6 +229,8 @@ namespace mini_ort {
         std::vector<ActivationLifetime> lifetimes;
     };
 
+    ExecutionPlan::ExecutionPlan(Compilation compilation) : instructions_(std::move(compilation.instructions)),
+        memory_plan_(std::move(compilation.lifetimes)) {}
 
     ExecutionPlan::ExecutionPlan(
         const SequentialModel& model,
@@ -442,14 +444,31 @@ namespace mini_ort {
         RunWorkspace& workspace
     ) const {
 
-        std::array<std::optional<TensorView>, RunWorkspace::kSlotCount> scratch;
+        // std::array<std::optional<TensorView>, RunWorkspace::kSlotCount> scratch;
+
+        std::size_t batch_size = 0;
+
+        if (!memory_plan_.slot_elements_per_batch().empty()) {
+            if (input.shape().size() != 2 || input.shape()[0] < 0) {
+                throw std::invalid_argument("planned temporary activations require a rank-2 input");
+            }
+            batch_size = static_cast<std::size_t>(input.shape()[0]);
+        }
+
+
+        workspace.Prepare(
+            batch_size,
+            memory_plan_.slot_elements_per_batch()
+        );
 
         for (const auto& instruction : instructions_) {
             const auto first = ResolveValue(
                 instruction.inputs[1],
                 input,
                 output,
-                scratch
+                memory_plan_,
+                // scratch
+                workspace
             );
 
             std::optional<ConstTensorView> second;
@@ -460,7 +479,9 @@ namespace mini_ort {
                         instruction.inputs[1],
                         input,
                         output,
-                        scratch
+                        memory_plan_,
+                        // scratch
+                        workspace
                     )
                 );
             }
@@ -490,7 +511,8 @@ namespace mini_ort {
                 output_shape,
                 output,
                 workspace,
-                scratch
+                // scratch
+                memory_plan_
             );
 
             if (instruction.input_count == 1) {
