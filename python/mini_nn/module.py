@@ -100,9 +100,9 @@ class Module(ABC):
                     child_prefix
                 )
 
-            append_chilren(self, "")
-            lines.append(f"Parameters: {self.parameter_count():,}")
-            return "\n".join(lines)
+        append_chilren(self, "")
+        lines.append(f"Parameters: {self.parameter_count():,}")
+        return "\n".join(lines)
 
 
     def save(

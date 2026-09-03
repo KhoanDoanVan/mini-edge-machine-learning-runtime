@@ -229,8 +229,7 @@ namespace mini_ort {
         std::vector<ActivationLifetime> lifetimes;
     };
 
-    ExecutionPlan::ExecutionPlan(Compilation compilation) : instructions_(std::move(compilation.instructions)),
-        memory_plan_(std::move(compilation.lifetimes)) {}
+    ExecutionPlan::ExecutionPlan(Compilation compilation) : instructions_(std::move(compilation.instructions)), memory_plan_(std::move(compilation.lifetimes)) {}
 
     ExecutionPlan::ExecutionPlan(
         const SequentialModel& model,
@@ -463,7 +462,7 @@ namespace mini_ort {
 
         for (const auto& instruction : instructions_) {
             const auto first = ResolveValue(
-                instruction.inputs[1],
+                instruction.inputs[0],
                 input,
                 output,
                 memory_plan_,

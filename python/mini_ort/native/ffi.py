@@ -78,7 +78,7 @@ def _configure_library() -> ctypes.CDLL:
     library.MiniOrtGetInputFeatureCount.argtypes = [void_pointer]
     library.MiniOrtGetInputFeatureCount.restype = ctypes.c_size_t
     library.MiniOrtGetOutputFeatureCount.argtypes = [void_pointer]
-    library.MiniOrtGetOutputfeatureCount.restype = ctypes.c_size_t
+    library.MiniOrtGetOutputFeatureCount.restype = ctypes.c_size_t
     library.MiniOrtReleaseSession.argtypes = [void_pointer]
     library.MiniOrtReleaseSession.restype = None
 
@@ -289,7 +289,7 @@ class NativeSessionHandle:
         status = self._library.MiniOrtCreateFloatTensor(
             native_data,
             len(data),
-            native_data,
+            native_shape,
             len(shape),
             ctypes.byref(handle)
         )
@@ -335,7 +335,7 @@ class NativeSessionHandle:
         element_count = 1
 
         for dimension in shape:
-            element_count += dimension
+            element_count *= dimension
 
         zero_data = (ctypes.c_float * element_count)()
 
@@ -434,7 +434,7 @@ class NativeSessionHandle:
             self,
             input_tensor: Tensor
     ) -> Tensor:
-        if self._session:
+        if not self._session:
             raise RuntimeError("native session is closed")
 
         input_handle = self._create_tensor_handle(
