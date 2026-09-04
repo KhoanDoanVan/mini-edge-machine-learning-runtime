@@ -54,19 +54,33 @@ namespace mini_ort {
             
         public:
 
+            /**
+             * @brief Compile a validated model into executable instructions.
+             * @param model Model whose layers define the execution graph.
+             * @param registry Kernel implementations available to the plan.
+             */
             ExecutionPlan(
                 const SequentialModel& model,
                 const KernelRegistry& registry
             );  
 
+            /**
+             * @brief Execute all planned instructions for one input tensor.
+             * @param input  Read-only input view.
+             * @param output Caller-owned preallocated output view.
+             * @param workspace Reusable activation workspace for this run.
+             */
             void Execute(
                 ConstTensorView input,
                 TensorView output,
                 RunWorkspace& workspace
             ) const;
 
+            /** @brief Return the number of compiled instructions. */
             [[nodiscard]] std::size_t size() const noexcept;
+            /** @brief Return the immutable instruction sequence. */
             [[nodiscard]] const std::vector<Instruction>& instructions() const noexcept;
+            /** @brief Return the activation memory plan used by this plan. */
             [[nodiscard]] const MemoryPlan& memory_plan() const noexcept;
 
         private:

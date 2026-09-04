@@ -15,24 +15,39 @@ namespace mini_ort {
     class TensorArena final {
 
         public:
+            /**
+             * @brief Construct an arena backed by the supplied allocator.
+             * @param allocator Allocator retained for the arena lifetime.
+             */
             explicit TensorArena(Allocator& allocator = DefaultAllocator()) noexcept;
 
+            /**
+             * @brief Configure physical slots before any slice is requested.
+             * @param slot_elements Maximum elements required by each slot.
+             */
             void Configure(std::span<const std::size_t> slot_elements);
 
+            /** @brief Return a writable slice for a configured slot. */
             [[nodiscard]] std::span<float> Slice(
                 std::size_t slot,
                 std::size_t elements
             );
+            /** @brief Return a read-only slice for a configured slot. */
             [[nodiscard]] std::span<const float> Slice(
                 std::size_t slot,
                 std::size_t elements
             ) const;
 
+            /** @brief Return the number of configured slots. */
             [[nodiscard]] std::size_t slot_count() const noexcept;
+            /** @brief Return a slot's element offset within the arena. */
             [[nodiscard]] std::size_t slot_offset_elements(std::size_t slot) const;
+            /** @brief Return a slot's configured element capacity. */
             [[nodiscard]] std::size_t slot_capacity_elements(std::size_t slot) const;
 
+            /** @brief Return bytes required by the configured layout. */
             [[nodiscard]] std::size_t layout_bytes() const noexcept;
+            /** @brief Return bytes currently available in the backing storage. */
             [[nodiscard]] std::size_t capacity_bytes() const noexcept;
 
         private:

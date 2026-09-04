@@ -19,12 +19,21 @@ namespace mini_ort {
     class MemoryPlan final {
 
         public:
+            /**
+             * @brief Pack non-overlapping activation lifetimes into arena slots.
+             * @param lifetimes Logical temporary lifetimes indexed by temporary id.
+             */
             explicit MemoryPlan(std::vector<ActivationLifetime> lifetimes);
 
+            /** @brief Return the physical slot assigned to a temporary id. */
             [[nodiscard]] std::size_t slot_for(std::size_t temporary_id) const;
+            /** @brief Return each slot's required elements per batch. */
             [[nodiscard]] std::span<const std::size_t> slot_elements_per_batch() const noexcept;
+            /** @brief Return the original logical activation lifetimes. */
             [[nodiscard]] const std::vector<ActivationLifetime>& lifetimes() const noexcept;
+            /** @brief Return the number of logical temporaries. */
             [[nodiscard]] std::size_t temporary_count() const noexcept;
+            /** @brief Return the number of physical arena slots. */
             [[nodiscard]] std::size_t slot_count() const noexcept;
 
         private:

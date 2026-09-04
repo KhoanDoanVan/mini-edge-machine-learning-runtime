@@ -24,8 +24,14 @@ namespace mini_ort {
 
         public:
 
+        /**
+         * @brief Construct and validate a sequential model.
+         * @param layers Ordered layer definitions to execute.
+         * @throws std::invalid_argument when layer dimensions are inconsistent.
+         */
         explicit SequentialModel(std::vector<Layer> layers);
 
+        /** @brief Return the validated layers in execution order. */
         [[nodiscard]] const std::vector<Layer>& layers() const noexcept;
 
         private:
