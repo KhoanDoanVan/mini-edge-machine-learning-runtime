@@ -1,0 +1,4 @@
+module MiniOrt {
+  header "mini_ort/c_api.h"
+  export *
+}

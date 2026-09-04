@@ -27,11 +27,11 @@ int main() {
         mini_ort::SequentialModel(std::move(layers)));
     const auto output = session.Run(input);
 
-    std::cout << "output=[" << output.data()[0] << ", " << output.data()[1]
-              << "]\n";
+    std::cout << "output=[" << output.data()[0] << ", " << output.data()[1] << "]\n";
     if (output.shape() != mini_ort::Shape({1, 2}) ||
         std::fabs(output.data()[0] - 4.75F) > 1e-6F ||
-        std::fabs(output.data()[1] - 4.5F) > 1e-6F) {
+        std::fabs(output.data()[1] - 4.5F) > 1e-6F
+    ) {
       std::cerr << "native output does not match the expected result\n";
       return 1;
     }

@@ -1,8 +1,10 @@
 #include "mini_ort/c_api.h"
 
+#include <cstddef>
 #include <exception>
 #include <limits>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -179,6 +181,36 @@ MiniOrtStatus* MiniOrtCreateSessionFromFile(
                 throw std::invalid_argument("model path and output must not be null");
             }
             *output = new MiniOrtSession(mini_ort::LoadModel(model_path));
+        }
+    );
+}
+
+MiniOrtStatus* MiniOrtCreateSessionFromBuffer(
+    const void* model_data,
+    const size_t model_size,
+    MiniOrtSession** output
+) {
+    if (output != nullptr) {
+        *output = nullptr;
+    }
+
+    return Guard(
+        [&] {
+            if (output == nullptr) {
+                throw std::invalid_argument("session output pointer must not be null");
+            }
+
+            if (model_data == nullptr && model_size != 0) {
+                throw std::invalid_argument("non-empty model data must not be null");
+            }
+
+            const auto* bytes = static_cast<const std::byte*>(model_data);
+
+            *output = new MiniOrtSession(
+                mini_ort::LoadModel(
+                    std::span<const std::byte>(bytes, model_size)
+                )
+            );
         }
     );
 }

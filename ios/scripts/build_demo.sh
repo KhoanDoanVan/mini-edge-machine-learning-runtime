@@ -17,7 +17,7 @@ PYTHONPATH="${PROJECT_ROOT}/python:${PROJECT_ROOT}" python3 -c \
   'from examples.mlp import build_model; build_model().save("build/models/tiny_mlp.mer")'
 
 xcodebuild \
-    -project "${PROJECT_ROOT}/ios/MiniOrtDemo/MiniOrtDemo.xcodeproj" \
+    -project "${PROJECT_ROOT}/demo/iOS/MiniOrtDemo/MiniOrtDemo.xcodeproj" \
     -scheme MiniOrtDemo \
     -configuration Debug \
     -sdk iphonesimulator \

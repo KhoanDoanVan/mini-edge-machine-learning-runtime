@@ -30,50 +30,59 @@ namespace mini_ort {
 
         class BinaryReader final {
             public:
-                explicit BinaryReader(const std::filesystem::path& path) : stream_(path, std::ios::binary), remaining_(std::filesystem::file_size(path)) {
-                    if (!stream_) {
-                        throw std::runtime_error("failed to open model file: " + path.string());
-                    }
-                }
+                // explicit BinaryReader(const std::filesystem::path& path) : stream_(path, std::ios::binary), remaining_(std::filesystem::file_size(path)) {
+                //     if (!stream_) {
+                //         throw std::runtime_error("failed to open model file: " + path.string());
+                //     }
+                // }
 
-                std::vector<std::uint8_t> ReadBytes(const std::size_t count) {
+                explicit BinaryReader(const std::span<const std::byte> data) noexcept : data_(data) {}
+                
+                // std::vector<std::uint8_t> ReadBytes(const std::size_t count) {
+                //     RequireRemaining(count);
+                //     std::vector<std::uint8_t> bytes(count);
+
+                //     if (count != 0) {
+                //         stream_.read(
+                //             reinterpret_cast<char*>(bytes.data()),
+                //             static_cast<std::streamsize>(count)
+                //         );
+
+                //         if (!stream_) {
+                //             throw std::runtime_error("failed to read model file");
+                //         }
+                //     }
+
+                //     remaining_ -= count;
+                //     return bytes;
+                // }
+
+                std::span<const std::byte> ReadBytes(const std::size_t count) {
                     RequireRemaining(count);
-                    std::vector<std::uint8_t> bytes(count);
-
-                    if (count != 0) {
-                        stream_.read(
-                            reinterpret_cast<char*>(bytes.data()),
-                            static_cast<std::streamsize>(count)
-                        );
-
-                        if (!stream_) {
-                            throw std::runtime_error("failed to read model file");
-                        }
-                    }
-
-                    remaining_ -= count;
+                    const auto bytes = data_.subspan(offset_, count);
+                    offset_ += count;
                     return bytes;
                 }
 
                 std::uint32_t ReadU32() {
                     const auto bytes = ReadBytes(4);
-                    return static_cast<std::uint32_t>(bytes[0]) |
-                            (static_cast<std::uint32_t>(bytes[1]) << 8U) |
-                            (static_cast<std::uint32_t>(bytes[2]) << 16U) |
-                            (static_cast<std::uint32_t>(bytes[3]) << 24U);
+                    return static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[0])) |
+                            (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[1])) << 8U) |
+                            (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[2])) << 16U) |
+                            (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[3])) << 24U);
                 }
 
                 std::uint64_t ReadU64() {
                     const auto bytes = ReadBytes(8);
                     std::uint64_t value = 0;
                     for (std::size_t index = 0; index < bytes.size(); ++index) {
-                        value |= static_cast<std::uint64_t>(bytes[index]) << (index * 8U);
+                        value |= static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[index])) << (index * 8U);
                     }
                     return value;
                 }
 
                 std::vector<float> ReadFloat32(const std::size_t count) {
-                    if (count > remaining_ / sizeof(float)) {
+                    if (count > Remaining() / sizeof(float)) {
                         throw std::runtime_error("model tensor exceeds the remaining file size");
                     }
 
@@ -90,7 +99,7 @@ namespace mini_ort {
                 }
 
                 void RequireFinished() const {
-                    if (remaining_ != 0) {
+                    if (Remaining() != 0) {
                         throw std::runtime_error("model file contains trailing bytes");
                     }
                 }
@@ -98,17 +107,26 @@ namespace mini_ort {
 
             private:
                 void RequireRemaining(const std::size_t count) const {
-                    if (count > remaining_) {
-                        throw std::runtime_error("model file is truncated");
-                    }
+                    // if (count > remaining_) {
+                    //     throw std::runtime_error("model file is truncated");
+                    // }
 
-                    if (count > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) {
-                        throw std::runtime_error("model read is too large");
+                    // if (count > static_cast<std::size_t>(std::numeric_limits<std::streamsize>::max())) {
+                    //     throw std::runtime_error("model read is too large");
+                    // }
+                    if (count > Remaining()) {
+                        throw std::runtime_error("model file is truncated");
                     }
                 }
 
-                std::ifstream stream_;
-                std::uintmax_t remaining_;
+                [[nodiscard]] std::size_t Remaining() const noexcept {
+                    return data_.size() - offset_;
+                }
+
+                // std::ifstream stream_;
+                // std::uintmax_t remaining_;
+                std::span<const std::byte> data_;
+                std::size_t offset_ = 0;
         };
 
 
@@ -139,25 +157,23 @@ namespace mini_ort {
             return lhs * rhs;
         }
 
-    }
-        
-    SequentialModel LoadModel(const std::filesystem::path& path) {
-        BinaryReader reader(path);
+    } // nameepsace
+
+    SequentialModel LoadModel(const std::span<const std::byte> data) {
+        BinaryReader reader(data);
 
         const auto magic = reader.ReadBytes(kMagic.size());
 
         if (!std::equal(
-                magic.begin(),
-                magic.end(),
-                kMagic.begin(),
-                kMagic.end()
-            )
-        ) {
+            magic.begin(),
+            magic.end(),
+            kMagic.begin(),
+            kMagic.end(),
+            [](const std::byte lhs, const std::uint8_t rhs) {
+                return std::to_integer<std::uint8_t>(lhs) == rhs;
+            }
+        )) {
             throw std::runtime_error("invalid MER model magic");
-        }
-
-        if (reader.ReadU32() != kFormatVersion) {
-            throw std::runtime_error("unsupported MER model version");
         }
 
         const auto layer_count = reader.ReadU32();
@@ -167,6 +183,7 @@ namespace mini_ort {
         }
 
         std::vector<Layer> layers;
+
         layers.reserve(layer_count);
 
         for (std::uint32_t index = 0; index < layer_count; ++index) {
@@ -195,13 +212,8 @@ namespace mini_ort {
 
             // Linear Layer
             if (type == kLinearLayer) {
-                if (
-                    in_features == 0 || 
-                    out_features == 0 || 
-                    weight_count != CheckedProduct(in_features, out_features) ||
-                    (bias_count != 0 && bias_count != out_features)
-                ) {
-                    throw std::runtime_error("invalid Linear Layer metadata");
+                if (in_features == 0 || out_features == 0 || weight_count != CheckedProduct(in_features, out_features) || (bias_count != 0 && bias_count != out_features)) {
+                    throw std::runtime_error("invalid Linear layer metadata");
                 }
 
                 Tensor weight(
@@ -231,7 +243,8 @@ namespace mini_ort {
                         std::move(bias)
                     }
                 );
-            // ReLU
+
+            // Relu
             } else if (type == kReluLayer) {
                 if (in_features != 0 || out_features != 0 || weight_count != 0 || bias_count != 0) {
                     throw std::runtime_error("invalid Relu layer metadata");
@@ -239,16 +252,49 @@ namespace mini_ort {
                 layers.emplace_back(
                     ReluLayer{}
                 );
-            // error
             } else {
-                throw std::runtime_error("unsupported MER layer type"); 
+                throw std::runtime_error("unsupported MER layer type");
             }
         }
 
         reader.RequireFinished();
+        return SequentialModel(std::move(layers));
+    }
+
         
-        return SequentialModel(
-            std::move(layers)
+    SequentialModel LoadModel(const std::filesystem::path& path) {
+        std::ifstream stream(
+            path,
+            std::ios::binary | std::ios::ate
+        );
+
+        if (!stream) {
+            throw std::runtime_error("failed to open model file: " + path.string());
+        }
+
+        const auto end = stream.tellg();
+
+        if (end < 0 || static_cast<std::uintmax_t>(end) > std::numeric_limits<std::size_t>::max()) {
+            throw std::runtime_error("model file is too large");
+        }
+
+        std::vector<std::byte> bytes(static_cast<std::size_t>(end));
+
+        stream.seekg(0, std::ios::beg);
+
+        if (!bytes.empty()) {
+            stream.read(
+                reinterpret_cast<char*>(bytes.data()),
+                static_cast<std::streamsize>(bytes.size())
+            );
+            
+            if (!stream) {
+                throw std::runtime_error("failed to read model file: " + path.string());
+            }
+        }
+
+        return LoadModel(
+            std::span<const std::byte>(bytes)
         );
     }
 

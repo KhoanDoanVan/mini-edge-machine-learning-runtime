@@ -1,13 +1,13 @@
-#!usr/bin/env bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASE_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OUTPUT_ROOT="${1:-${PROJECT_ROOT}/build/ios}"
 DEPLOYMENT_TARGET="${MINI_ORT_IOS_DEPOYMENT_TARGET:-15.0}"
 
-if [[ -z "${OUTPUT_ROOT}" || "${OUTPUT_ROOT}" == "/"]]; then 
+if [[ -z "${OUTPUT_ROOT}" || "${OUTPUT_ROOT}" == "/" ]]; then 
     echo "Refusing to use an unsafe iOS output directory" >&2
     exit 1
 fi
@@ -39,9 +39,11 @@ cmake -S "${PROJECT_ROOT}/cpp" -B "${DEVICE_BUILD}" \
 cmake --build "${DEVICE_BUILD}" --target mini_ort --parallel
 cmake --install "${DEVICE_BUILD}"
 
+SIMULATOR_SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+
 cmake -S "${PROJECT_ROOT}/cpp" -B "${SIMULATOR_BUILD}" \
     "${COMMON_OPTIONS[@]}" \
-    -DCMAKE_OSX_SYSROOT=iphoneosimulator \
+    -DCMAKE_OSX_SYSROOT="${SIMULATOR_SDK}" \
     '-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64' \
     -DCMAKE_INSTALL_PREFIX="${SIMULATOR_INSTALL}"
 cmake --build "${SIMULATOR_BUILD}" --target mini_ort --parallel
