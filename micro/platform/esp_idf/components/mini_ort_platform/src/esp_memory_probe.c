@@ -14,6 +14,7 @@
 
 static const char* kTag = "mini_ort_probe"
 
+/** @brief Capture heap statistics for a capability-filtered region. */
 static MerEspMemoryRegionStats CaptureRegion(uint32_t capabilities) {
     MerEspMemoryRegionStats stats = {
         .total_bytes = heap_caps_get_total_size(capabilities),
@@ -25,6 +26,7 @@ static MerEspMemoryRegionStats CaptureRegion(uint32_t capabilities) {
     return stats
 }
 
+/** @brief Log one labeled heap-region statistics record. */
 static void LogRegion(
     const char* snapshot_label,
     const char* region_name,
@@ -42,6 +44,7 @@ static void LogRegion(
     );
 }
 
+/** @brief Log ESP chip, runtime, flash, and external-memory information. */
 void mer_esp_memory_probe_log_device_info(void) {
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
@@ -98,7 +101,7 @@ void mer_esp_memory_probe_log_device_info(void) {
     );
 }
 
-
+/** @brief Capture heap-region statistics and the current task stack watermark. */
 MerEspMemorySnapshot mer_esp_memory_probe_capture(void) {
     const uint32_t internal_8bit_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
     const uint32_t internal_dma_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT;
@@ -115,6 +118,7 @@ MerEspMemorySnapshot mer_esp_memory_probe_capture(void) {
     return snapshot;
 }
 
+/** @brief Log every region in a snapshot and its task stack watermark. */
 void mer_esp_memory_probe_log_snapshot(
     const char* label,
     const MerEspMemorySnapshot* snapshot
@@ -139,6 +143,7 @@ void mer_esp_memory_probe_log_snapshot(
     );
 }
 
+/** @brief Capture a current snapshot and send it to the ESP log. */
 void mer_esp_memory_probe_capture_and_log(const char* label) {
     const MerEspMemorySnapshot snapshot = mer_esp_memory_probe_capture();
     mer_esp_memory_probe_log_snapshot(
