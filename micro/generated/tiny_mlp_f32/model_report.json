@@ -1,0 +1,38 @@
+{
+  "alignment": 16,
+  "arena_bytes": 16,
+  "format": "mer",
+  "format_version": 1,
+  "generator_version": 1,
+  "input_elements": 3,
+  "layer_count": 3,
+  "layers": [
+    {
+      "arena_offset": 0,
+      "destination": "arena",
+      "has_bias": true,
+      "in_features": 3,
+      "index": 0,
+      "out_features": 4,
+      "type": "Linear"
+    },
+    {
+      "index": 1,
+      "type": "ReLU"
+    },
+    {
+      "arena_offset": null,
+      "destination": "output",
+      "has_bias": true,
+      "in_features": 4,
+      "index": 2,
+      "out_features": 2,
+      "type": "Linear"
+    }
+  ],
+  "output_elements": 2,
+  "scratch_bytes": 0,
+  "source_model": "micro_mlp_f32.mer",
+  "source_model_sha256": "2ecef06df6cae88b3076175764fa3b21a7d291f05b7266e70ef2c28c17ebea87",
+  "weight_bytes": 104
+}
