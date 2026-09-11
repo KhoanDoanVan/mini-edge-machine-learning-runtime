@@ -48,7 +48,7 @@ MerMicroStatus mer_micro_relu_f32(
 
     for (uint32_t dimension = 0; dimension < input->rank; ++dimension) {
         if (input->dimensions[dimension] != output->dimensions[dimension]) {
-            return MER_MICRO_STATUS_SHAPE_MISMATCH;s
+            return MER_MICRO_STATUS_SHAPE_MISMATCH;
         }
     }
 

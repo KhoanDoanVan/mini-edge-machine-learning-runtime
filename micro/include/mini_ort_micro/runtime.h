@@ -62,7 +62,7 @@ MerMicroStatus mer_micro_init(
  * @param output Receives the resolved address on success.
  * @return A status describing validation success or failure.
  */
-MerMicroStatus mer_micro_scratch_data(
+MerMicroStatus mer_micro_arena_data(
     const MerMicroContext* context,
     size_t offset,
     size_t bytes,
@@ -71,12 +71,12 @@ MerMicroStatus mer_micro_scratch_data(
 );
 
 /** @brief Resolve an aligned range within the scratch buffer. */
-MerMicroStatus mer_micro_scratch_datat(
+MerMicroStatus mer_micro_scratch_data(
     const MerMicroContext* context,
     size_t offset,
     size_t bytes,
     size_t alignment,
-    void**output
+    void** output
 );
 
 
