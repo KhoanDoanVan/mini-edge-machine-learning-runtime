@@ -15,3 +15,5 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 *.xcframework/
+
+*build

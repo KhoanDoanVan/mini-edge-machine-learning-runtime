@@ -12,7 +12,7 @@
 #include "freertos/task.h"
 #include "sdkconfig.h"
 
-static const char* kTag = "mini_ort_probe"
+static const char* kTag = "mini_ort_probe";
 
 /** @brief Capture heap statistics for a capability-filtered region. */
 static MerEspMemoryRegionStats CaptureRegion(uint32_t capabilities) {
@@ -23,7 +23,7 @@ static MerEspMemoryRegionStats CaptureRegion(uint32_t capabilities) {
         .largest_free_block_bytes = heap_caps_get_largest_free_block(capabilities),
     };
     
-    return stats
+    return stats;
 }
 
 /** @brief Log one labeled heap-region statistics record. */
@@ -86,7 +86,7 @@ void mer_esp_memory_probe_log_device_info(void) {
             flash_size_bytes
         );
     } else {
-        ESP_LOWG(
+        ESP_LOGW(
             kTag,
             "flash size unavailable error=%s",
             esp_err_to_name(flash_status)
@@ -107,7 +107,7 @@ MerEspMemorySnapshot mer_esp_memory_probe_capture(void) {
     const uint32_t internal_dma_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA | MALLOC_CAP_8BIT;
     const uint32_t spiram_8bit_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
 
-    erEspMemorySnapshot snapshot = {
+    MerEspMemorySnapshot snapshot = {
         .default_heap = CaptureRegion(MALLOC_CAP_DEFAULT),
         .internal_8bit = CaptureRegion(internal_8bit_caps),
         .internal_dma = CaptureRegion(internal_dma_caps),
