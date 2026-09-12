@@ -17,6 +17,7 @@
 
   <p>
     <a href="#overview">Overview</a> ·
+    <a href="#hardware-support">Hardware</a> ·
     <a href="#quick-start">Quick start</a> ·
     <a href="#architecture">Architecture</a> ·
     <a href="#supported-operations">Supported operations</a> ·
@@ -34,6 +35,14 @@ It does **not** depend on ONNX, ONNX Runtime, NumPy, or another machine learning
 
 > [!IMPORTANT]
 > TinyONNX is an educational, experimental runtime. Its JSON model format is inspired by ONNX architecture, but it is not the official ONNX wire format and is not intended for production workloads yet.
+
+## Hardware support
+
+| Board | Image | Progress | Documentation / example |
+|---|---|---|---|
+| ESP32-CAM | <img src="assets/models/esp32_cam.jpg" alt="ESP32-CAM board" width="110" /> | Planned; not yet validated. | Not available yet. |
+| ESP32 DevKit | <img src="assets/models/esp32_dev_kit.jpg" alt="ESP32 DevKit board" width="110" /> | **Complete reference:** ESP-IDF build and flash verified. | [Build guide](docs/ESP32/ESP32_DEVKIT_BUILD_GUIDE.md) · [Firmware example](examples/esp32_generated_mlp/main/app_main.c) |
+| ESP32-S3 | <img src="assets/models/esp32_s3.jpg" alt="ESP32-S3 board" width="110" /> | Planned; not yet validated. | Not available yet. |
 
 ## License
 
