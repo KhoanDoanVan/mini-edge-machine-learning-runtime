@@ -19,10 +19,12 @@ extern "C" {
 typedef enum MerMicroDataType {
     /** @brief IEEE 754 single-precision floating-point values. */
     MER_MICRO_DATA_TYPE_FLOAT32 = 1,
-    /** @brief Signed 8-bit integer values. */
+    /** @brief Signed 8-bit integer values. -128 ... 127 */
     MER_MICRO_DATA_TYPE_INT8 = 2,
     /** @brief Signed 32-bit integer values. */
     MER_MICRO_DATA_TYPE_INT32 = 3,
+    /** @brief Unsigned 8-bit integer values.  0 ... 255 */
+    MER_MICRO_DATA_TYPE_UINT8 = 4,
 } MerMicroDataType;
 
 /** @brief Non-owning read-only view over a typed tensor buffer. */
